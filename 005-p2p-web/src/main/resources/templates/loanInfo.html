@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>动力金融网-CFCA认证的互联网金融公司</title>
+</head>
+
+<body>
+<div id="header">
+<!--<jsp:include page="commons/header.jsp"/>-->
+    <div th:include="commons/header::html"></div>
+</div>
+<script th:inline="javascript">
+  $(function () {
+    var data4Vue = {
+      pid : [[${loanInfo.id}]],
+      context : context,
+      result : {},
+      page : {},
+      loan : [[${loanInfo}]],
+      investMoney : "",
+      err : ""
+    };
+    var vue = new Vue({
+      el : "#work_area",
+      data : data4Vue,
+      filters : {
+        formatDate : function(value) {
+          var datetime = new Date(value);
+          var year = datetime.getFullYear();
+          var month = datetime.getMonth() + 1 < 10 ? "0" + (datetime.getMonth() + 1) : datetime.getMonth() + 1;
+          var date = datetime.getDate() < 10 ? "0" + datetime.getDate() : datetime.getDate();
+          var hour = datetime.getHours()< 10 ? "0" + datetime.getHours() : datetime.getHours();
+          var minute = datetime.getMinutes()< 10 ? "0" + datetime.getMinutes() : datetime.getMinutes();
+          var second = datetime.getSeconds()< 10 ? "0" + datetime.getSeconds() : datetime.getSeconds();
+          return year + "-" + month + "-" + date+" "+hour+":"+minute+":"+second;
+        }
+      },
+      computed : {
+          moneyMsg : function(){
+            if(this.investMoney == ""){
+              return "请输入金额";
+            }
+            if(this.investMoney <= 0){
+              return "请输入大于0的金额";
+            }
+            if(this.investMoney % 100 != 0){
+              return "金额需为100的倍数";
+            }
+            if(this.err != null){
+              return this.err;
+            }
+            return "";
+          },
+          income : function () {
+            if(this.investMoney == ""){
+              return null;
+            }
+            if(this.investMoney <= 0){
+              return null;
+            }
+            if(this.investMoney % 100 != 0){
+              return null;
+            }
+              var result = ((this.investMoney * this.loan.rate) / (100 * 365)) * this.loan.cycle * (this.loan.productType == 0 ? 1 : 30);
+              return Math.round(result * 100) / 100;
+          }
+      },
+      methods : {
+        getBidInfos : function(start){
+          var url=context + "/loan/bid/" + this.pid + "/" + start;
+          var self = this;
+          axios.get(url).then(function (value) {
+            self.result = value.data;
+            if(self.result.status == 200){
+              self.page = self.result.data;
+            }else{
+              alert(self.result.msg);
+            }
+          })
+        },
+        /**
+         * 跳转 0：首页 1：上一页 2：下一页 3：尾页
+         * @param status
+         */
+        jump : function (status) {
+          switch (status) {
+            case 0 :
+              if(this.page.start == 0){
+                return;
+              }else{
+                this.getBidInfos(0);
+              }
+              break;
+            case 1:
+              if(this.page.hasPre){
+                this.getBidInfos(this.page.start - this.page.count);
+              }else{
+                return;
+              }
+              break;
+            case 2:
+              if(this.page.hasNext){
+                this.getBidInfos(this.page.start + this.page.count);
+              }else{
+                return;
+              }
+              break;
+            case 3:
+              if(this.page.hasNext){
+                this.getBidInfos(this.page.lastIndex);
+              }else{
+                return;
+              }
+              break;
+            default:
+              return;
+          }
+        },
+        invest : function () {
+          if(this.moneyMsg != ""){
+            return;
+          }
+          if(this.investMoney < this.loan.bidMinLimit){
+            this.err = "投资金额不能小于" + this.loan.bidMinLimit;
+            return;
+          }
+          if(this.investMoney > this.loan.bidMaxLimit){
+            this.err = "投资金额不能大于" + this.loan.bidMaxLimit;
+            return;
+          }
+          if(this.investMoney > this.loan.leftProductMoney){
+            this.err = "投资金额不能多于产品可投金额";
+            return;
+          }
+          var url = context + "/bidinfo/" + this.loan.id + "/" + this.investMoney;
+          var self = this;
+          axios.post(url).then(function (value) {
+            self.result = value.data;
+            if(self.result.status == 200){
+              $("#failurePayment").show();
+              $("#dialog-overlay1").show();
+            }else if(self.result.status == 401){
+              alert(self.result.msg);
+              location.href = context + "/user/login?returnURL=" + returnURL;
+            }else if(self.result.status == 1001){
+              if(confirm(self.result.msg)){
+                location.href = context + "/user/realName";
+              }
+            }else{
+              self.err = self.result.msg;
+            }
+          })
+        },
+        clrErr : function () {
+          this.err = "";
+        }
+      },
+      mounted : function () {
+        this.getBidInfos(0)
+      }
+    })
+  })
+</script>
+<div id="work_area">
+<!--散标投资 begin-->
+<div id="sbtz" class="invest-details">
+
+<!--页中begin-->
+<div class="mainBox pro-details-body">
+  <div class="homeWap clearfix" id="huacengPar">
+    <div class="pro-details-left">
+      
+      <!-- 产品详情start -->
+      <div class="pro-info-details">
+        <div class="pro-name">
+          <h2>
+          <span th:text="|${loanInfo.productName}(${#dates.format(loanInfo.releaseTime, 'yyyyMMdd')}期)|">季度宝 (20170726期)</span>
+          </h2>
+        </div>
+        <div class="pro-info">
+          <ul class="clearfix">
+            <li class="info-1">
+              <p>历史年化利率</p>
+              <h3 th:text="${loanInfo.rate} + '%'">4.9%</h3>
+              <div class="info-bt">
+              <span>本产品采用普通利率</span>
+              </div>
+            </li>
+            <li class="info-2">
+              <p>募集金额(元)</p>
+              <h3 th:text="${loanInfo.productMoney}">500000.0</h3>
+              <div class="info-bt">
+                  <span th:if="${loanInfo.productStatus == 0}">
+                    <span th:text="|募集中,剩余募集金额 ${loanInfo.leftProductMoney}元|">
+                        <!-- 只有状态为0时为募集，其它都为已满标 -->
+                       募集中,剩余募集金额 500000.0元
+                    </span>
+                  </span>
+                  <span th:unless="${loanInfo.productStatus == 0}">
+                      <!-- 已满标 -->
+                      已满标
+                  </span>
+              </div>
+            </li>
+            <li class="info-3">
+              <p>投资周期</p>
+              <!-- 只有新手宝产品周期为天 -->
+                <span th:unless="${loanInfo.productType == 0}">
+                    <h3 th:text="|${loanInfo.cycle}个月|">6个月</h3>
+                </span>
+                <span th:if="${loanInfo.productType == 0}">
+                    <h3 th:text="|${loanInfo.cycle}天|">6个月</h3>
+                </span>
+              <div class="info-bt"><span></span></div>
+            </li>
+          </ul>
+        </div>
+        <dl class="pro-syfs">
+          <dt><span>收益获取方式</span></dt>
+          <dd><span>收益返还：</span>到期还本付息</dd>
+        </dl>
+      </div>
+      <!-- 产品详情end -->
+      
+      <!-- 投资记录start -->
+      <div class="pro-details-cnt">
+        <ul class="tabNav clearfix">
+          <li><a id="one3" href="javascript:void(0);" class="s">投资记录</a></li>
+        </ul>
+        
+        <div class="invest-record" id="con_one_3" style="display:block">
+        <div class="vertical-side">投资列表</div>
+		<dl class="record-list">
+		<dt>
+			<span class="record-num">序号</span><span class="invest-user">投资人</span><span class="invest-money">投资金额(元)</span><span class="invest-time">投资时间</span>
+		</dt>
+		
+        <!-- 如果投资记录为空，显示以下文字 -->
+        <div v-if="page.data == null">
+          <dd style="text-align:center;">该产品暂时还没有人投资，赶快去投资吧~</dd>
+        </div>
+		<!-- 如果有投资记录，循环遍历显示 -->
+        <div v-else>
+          <dd v-for="(bidInfo, index) in page.data">
+              <span class="record-num">{{index + 1}}</span>
+              <span class="invest-user">{{bidInfo.user.phone}}</span>
+              <span class="invest-money" >{{bidInfo.bidMoney}}</span>
+              <span class="invest-time" th:inline="text">{{bidInfo.bidTime|formatDate}}</span>
+          </dd>
+          <table class="page_bar">
+            <tbody>
+            <tr>
+              <td>
+                共{{page.total}}条{{page.totalPage}}页　当前为第{{page.currentPage}}页　
+                <a id="linkHomePage" href="javascript:void(0)" @click="jump(0)">首页</a>
+                <a id="linkPreviousPage" href="javascript:void(0)" @click="jump(1)">上一页</a>
+                <a id="linkNextPage" href="javascript:void(0)" @click="jump(2)">下一页 </a>
+                <a id="linkLastPage" href="javascript:void(0)" @click="jump(3)">尾页</a>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+		</dl>
+
+		</div>
+      </div>
+      <!-- 投资记录end -->
+    </div>
+    
+    <!--页面右侧begin-->
+    <div class="pro-details-right">
+      <div class="right-calculator" id="huaceng">
+        <div class="calculator-cnt">
+          <h2>立即投资</h2>
+          <dl class="profits-mode">
+            <dt>收益获取方式</dt>
+            <dd class="clearfix"><span id="fanhuan"><em>到期还本付息</em></span></dd>
+          </dl>
+          <dl class="usable">
+            <dt>我的账户可用</dt>
+            <dd>资金(元)：
+            
+	            	<!-- 判断用户是否登录：未登录，显示登录连接 -->
+              <div th:unless="${session.User}">
+                <span style="font-size:18px;color:#ff6161;vertical-align:bottom;"><a href="javascript:tologin()">请登录</a></span>
+              </div>
+	            	<!-- 判断用户是否登录：已登录，显示可用余额 -->
+              <div th:if="${session.User}">
+                  <span style="font-size:18px;color:#ff6161;vertical-align:bottom;" th:text="|${money}元|">1,000,12 元</span>
+              </div>
+            </dd>
+          </dl>
+          <div class="expect-box">
+            <div class="expect-money">预计本息收入(元)：{{income}}<span id="shouyi" class="money"></span><span class="prompt" style="display:block;">请在下方输入投资金额</span></div>
+            <input type="text" id="bidMoney" name="bidMoney" onblur="checkMoney();" placeholder="请输入投资金额，应为100元的整倍数" maxlength="9" v-model="investMoney" @focus="clrErr()"/>
+            <div class="max-invest-money">{{moneyMsg}}</div>
+          </div>
+          <div class="invest-btn">
+          	<a id="investNow" href="javascript:void(0)" class="btn-1" @click="invest();">立即投资</a>
+          </div>
+          <input type="hidden" id="loanId" name="loanId" value="${loanInfo.id}"/>
+        </div>
+      </div>
+    </div>
+    <!--页面右侧end-->
+  </div>
+</div>
+<!--页中end-->
+
+</div>
+<!--散标投资 end-->
+
+<!--遮罩层-->
+<div class="dialog-overlay" id="dialog-overlay1" style="display:none;"></div>
+
+<!--投资成功浮层start-->
+<div class="layer-body failureSuccess failurePayment" id="failurePayment" style="display: none;width:500px;height:100px;top:75%;">
+  <a class="layer-close" href="javascript:closeit();"></a>
+  <div style="background:#f2f2f2; line-height:105px;text-align:center;"><font style="font-size:25px;">投资成功</font></div>
+</div>
+<!--投资成功浮层end-->
+</div>
+<!--页脚start-->
+<div th:replace="commons/footer::html"></div>
+<!--页脚end-->
+
+<script type="text/javascript">
+function closeit() {
+	$("#failurePayment").hide();
+	$("#dialog-overlay1").hide();
+	window.location.href=context +"/myCenter/" + [[${session.User.id}]];
+}
+</script>
+</body>
+</html>

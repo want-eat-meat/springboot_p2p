@@ -1,0 +1,14 @@
+<component name="ArtifactManager">
+  <artifact type="war" name="007-p2p-pay:war">
+    <output-path>$PROJECT_DIR$/007-p2p-pay/target</output-path>
+    <properties id="maven-jee-properties">
+      <options>
+        <module>007-p2p-pay</module>
+        <packaging>war</packaging>
+      </options>
+    </properties>
+    <root id="archive" name="007-p2p-pay-1.0.0.war">
+      <element id="artifact" artifact-name="007-p2p-pay:war exploded" />
+    </root>
+  </artifact>
+</component>

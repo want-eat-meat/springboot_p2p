@@ -1,0 +1,134 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <title>动力金融网 - 专业的互联网金融信息服务平台</title>
+    <script type="text/javascript" th:src="@{/js/jquery-1.7.2.min.js}"></script>
+    <script type="text/javascript" th:src="@{/js/trafficStatistics.js}"></script>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/share.css}"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}"/>
+    <!--<link rel="stylesheet" th:href="@{/bootstrap/css/bootstrap.min.css}"/>
+    <script type="text/javascript" th:src="@{/bootstrap/js/bootstrap.min.js}"></script>-->
+    <style>
+        .uploadFile {
+            position: relative;
+            display: inline-block;
+            overflow: hidden;
+            text-indent: 0;
+            width:280px;
+            height:38px;
+            cursor:pointer;
+            background:#17A2D5;
+            text-align:center;
+            font-size:16px;
+            color:#fff;
+            border:none;
+            -moz-border-radius:2px;
+            -webkit-border-radius:2px;
+            border-radius:2px;
+        }
+        .uploadFile:hover{background:#1bb2ea;}
+        .uploadFile input {
+            position: absolute;
+            font-size: 100px;
+            right: 0;
+            top: 0;
+            opacity: 0;
+        }
+        #submitFile {
+            width:280px;
+            height:38px;
+            cursor:pointer;
+            background:#17A2D5;
+            text-align:center;
+            font-size:16px;
+            color:#fff;
+            border:none;
+            -moz-border-radius:2px;
+            -webkit-border-radius:2px;
+            border-radius:2px;
+        }
+        #submitFile:hover{
+            background:#1bb2ea;
+        }
+    </style>
+</head>
+<body>
+<!-- 页头start -->
+<div id="header">
+    <div th:include="commons/header :: html"></div>
+</div>
+<!--页头end-->
+
+<!--body-->
+<div style="width: 100%;height: 800px; text-align: center; margin-top: 20px" id="work_area" class="mainBox">
+    <!--图片展示-->
+    <div style="width: 300px; height: 300px">
+        <img :src="imgPath" style="height: 100%; width: 100%" class="img-thumbnail">
+    </div>
+    <div style="margin-top: 10px">
+        <button class="uploadFile btn btn-info">
+            <input type="file" @change="getImage($event)">点击上传图片
+        </button><br><br>
+        <input id="submitFile"type="button" class="btn btn-success" value="提交" @click="upload()">
+    </div>
+</div>
+<!--页尾-->
+<div th:include="commons/footer::html"></div>
+<script th:inline="javascript">
+    $(function () {
+        var data4Vue = {
+            imgPath : context + "/images/header.png",
+            context : context,
+            imgFile : "",
+            result : {}
+        };
+        var vue = new Vue({
+            el : "#work_area",
+            data : data4Vue,
+            methods : {
+                getImage : function (event) {
+                    var file = event.target.files[0];
+                    this.imgFile = file;
+                    var url = "";
+                    if (window.createObjectURL!=undefined) { // basic
+                        url = window.createObjectURL(file) ;
+                    }else if (window.webkitURL!=undefined) { // webkit or chrome
+                        url = window.webkitURL.createObjectURL(file) ;
+                    }else if (window.URL!=undefined) { // mozilla(firefox)
+                        url = window.URL.createObjectURL(file) ;
+                    }
+                    this.imgPath = url;
+                },
+                upload : function () {
+                    if(this.imgFile == ""){
+                        alert("请选择图片");
+                        return;
+                    }
+                    var formdata = new FormData();
+                    formdata.append("file", this.imgFile);
+                    var url = context +  "/user/setHeadImg";
+                    var self = this;
+                    axios.post(url, formdata).then(function (value) {
+                        self.result = value.data;
+                        if(self.result.status == 200){
+                            location.href = context + "/myCenter/" + [[${session.User.id}]]
+                        }else if(self.result.status == 401){
+                            alert(self.result.msg);
+                            location.href = context + "/user/login?returnURL=" + returnURL;
+                        }else{
+                            alert(self.result.msg);
+                        }
+                    })
+                }
+            },
+            mounted : function () {
+                if([[${session.User.headerImage}]] != null){
+                    this.imgPath = [[${session.User.headerImage}]];
+                }
+            }
+        })
+    })
+</script>
+</body>
+</html>

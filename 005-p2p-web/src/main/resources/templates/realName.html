@@ -1,0 +1,229 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/style.css}"/>
+    <script language="javascript" type="text/javascript" th:src="@{/js/jquery-1.7.2.min.js}"></script>
+    <script language="javascript" type="text/javascript" th:src="@{/js/realName.js}"></script>
+    <title>实名认证动力金融网-动力金融网,专业的互联网金融信息服务平台</title>
+    <style type="text/css">
+        .testBtn-a{display: inline-block;height:40px;line-height:30px;padding:0 8px; border:0; border-radius:0px;color:#fff;background:rgb(65,133,244);cursor: pointer;}
+        .testBtn-a.on{background:#c9c9c9;color:#666;cursor: default;}
+    </style>
+</head>
+
+<body>
+<script th:inline="javascript">
+    $(function () {
+        var data4Vue = {
+            user : [[${session.User}]],
+            context : context,
+            code : "",
+            result : {},
+            //发送验证码按钮显示信息
+            sendCode : "获取验证码",
+            //发送验证码倒计时
+            sendTime : 60,
+            //计时器
+            interval : null
+        };
+        var vue = new Vue({
+            el : "#work_area",
+            data : data4Vue,
+            methods : {
+                agree : function(){
+                    if ($("#agree").prop("checked")) {
+                        $("#btnRegist").attr("disabled", false);
+                        $("#btnRegist").removeClass("fail");
+                    } else {
+                        $("#btnRegist").attr("disabled","disabled");
+                        $("#btnRegist").addClass("fail");
+                    }
+                },
+                clearMsg : function(id){
+                    hideError(id);
+                },
+                //发送验证码
+                getCheckNum : function () {
+                    if(this.sendTime != 60){
+                        return;
+                    }
+                    var url = context + "/user/register/" + this.user.phone;
+                    var self = this;
+                    axios.get(url).then(function (value) {
+                        self.result = value.data;
+                        if(self.result.status == 200){
+                            self.countDown();
+                        }else{
+                            alert(self.result.msg);
+                        }
+                    })
+                },
+                countDown : function () {
+                    var self = this;
+                    self.sendCode = self.sendTime + "S后可重发";
+                    self.interval = setInterval(function(){
+                        self.sendTime--;
+                        self.sendCode = self.sendTime + "S后可重发";
+                    },1000);
+                    setTimeout(function () {
+                        clearInterval(self.interval);
+                        self.sendTime = 60;
+                        self.sendCode = "获取验证码";
+                    },60*1000);
+                },
+                checkName : function () {
+                    if($.trim(this.user.name) == ""){
+                        showError("realName", "用户名不能为空");
+                    }else if(!(/^[\u4E00-\u9FA5\uf900-\ufa2d·s]{2,20}$/.test(this.user.name))){
+                        showError("realName", "用户名格式错误");
+                    }else{
+                        showSuccess("realName");
+                    }
+                },
+                checkIdcard : function () {
+                    if($.trim(this.user.idCard) == ""){
+                        showError("idCard", "身份证号不能为空");
+                    }else if(!(/^[1-9]\d{7}((0\d)|(1[0-2]))(([0|1|2]\d)|3[0-1])\d{3}$|^[1-9]\d{5}[1-9]\d{3}((0\d)|(1[0-2]))(([0|1|2]\d)|3[0-1])\d{3}([0-9]|X)$/.test(this.user.idCard))){
+                        showError("idCard", "身份证号格式错误");
+                    }else{
+                        showSuccess("idCard");
+                    }
+                },
+                checkCode : function () {
+                    if($.trim(this.code) == ""){
+                        showError("messageCode", "验证码不能为空");
+                    }else if(!(/^[0-9]{6}$/.test(this.code))){
+                        showError("messageCode", "请输入6位数字")
+                    }else{
+                        showSuccess("messageCode");
+                    }
+                },
+                identity : function () {
+                    if(!(/^[\u4E00-\u9FA5\uf900-\ufa2d·s]{2,20}$/.test(this.user.name))){
+                        return;
+                    }
+                    if(!(/^[1-9]\d{7}((0\d)|(1[0-2]))(([0|1|2]\d)|3[0-1])\d{3}$|^[1-9]\d{5}[1-9]\d{3}((0\d)|(1[0-2]))(([0|1|2]\d)|3[0-1])\d{3}([0-9]|X)$/.test(this.user.idCard))){
+                        return;
+                    }
+                    if(!(/^[0-9]{6}$/.test(this.code))){
+                        return;
+                    }
+                    var url = context + '/user/identity' + '/' + this.code;
+                    var self = this;
+                    axios.post(url, this.user).then(function (value) {
+                        self.result = value.data;
+                        if(self.result.status == 200){
+                            location.href = context + "/";
+                        }else if(self.result.status == 401){
+                            alert("登录状态过期，请重新登录");
+                            location.href = context + "/user/login?returnURL=" + returnURL;
+                        }else if(self.result.status == 1001){
+                            showError("realName", self.result.msg);
+                        }else if(self.result.status == 1002){
+                            showError("idCard", self.result.msg);
+                        }else if(self.result.status == 1003){
+                            showError("messageCode", self.result.msg);
+                        }else{
+                            alert(self.result.msg)
+                        }
+                    })
+                }
+            }
+        })
+    })
+</script>
+<div id="header">
+    <div th:include="commons/header :: html"></div>
+</div>
+<div id="work_area">
+<div class="login-body regBody">
+    <div class="mainBox">
+        <div class="homeWap">
+            <div class="reg-step">
+                <ul class="clearfix">
+                    <li class="none">注册</li>
+                    <li>实名认证</li>
+                    <li class="last">完成</li>
+                </ul>
+            </div>
+            <div class="login-cnt reg-body clearfix">
+                <div class="fl">
+                    <div class="reg-link">暂不认证？<a th:href="@{/}">跳过</a></div>
+                    <div class="login-form reg-form">
+                        <h2>实名认证</h2>
+
+                        <div class="login-box clearfix" style="z-index:100;">
+                            <label>手机号</label>
+                            <input type="text" id="phone" name="phone" class="input_text" maxlength="11" placeholder="请输入11位手机号码" autocomplete="off" readonly v-model="user.phone"/>
+                            <span id="phoneOk" class="ok" style="display:none;"></span>
+                            <div id="phoneErr" class="form-hint" style="display:none;"></div>
+                        </div>
+
+                        <div class="login-box clearfix" style="z-index:100;">
+                            <label>真实姓名</label>
+                            <input type="text" id="realName" name="realName" class="input_text" maxlength="25" placeholder="请输入您的真实姓名" autocomplete="off" v-model="user.name" @blur="checkName()" @focus="clearMsg('realName')"/>
+                            <span id="realNameOk" class="ok" style="display:none;"></span>
+                            <div id="realNameErr" class="form-hint" style="display:none;"></div>
+                        </div>
+                        <div class="login-box clearfix " style="z-index:90;">
+                            <label>身份证号</label>
+                            <input type="text" id="idCard" name="idCard" class="input_text" maxlength="20" placeholder="请输入15位或20位身份证号码" autocomplete="off" v-model="user.idCard" @blur="checkIdcard()" @focus="clearMsg('idCard')"/>
+                            <span id="idCardOk" class="ok" style="display:none;"></span>
+                            <div id="idCardErr" class="form-hint" style="display:none;z-index:90;"></div>
+                        </div>
+                        <div class="login-box clearfix" style="z-index:60;">
+                            <label>&nbsp;</label>
+                            <div class="yzm-box">
+                                <input id="messageCode" type="text" class="yzm" placeholder="获取短信验证码" v-model="code" @blur="checkCode()" @focus="clearMsg('messageCode')"/>
+                                &nbsp;&nbsp;
+                                <button type="button" class="testBtn-a" id="messageCodeBtn" @click="getCheckNum()">{{sendCode}}</button>
+                            </div>
+                            <span id="messageCodeOk" class="ok" style="display:none;"></span>
+                            <div id="messageCodeErr" class="form-hint" style="display:none;"></div>
+                        </div>
+                        <div class="remember" style="z-index:60;">
+                            <span class="on">
+                            <input id="agree" name="agree" type="checkbox" @click="agree()"/>我已阅读并同意<a
+                                    href="javascript:alertBox('mask','agreement');"><font
+                                    style="color: red;">《动力金融网&trade;实名认证服务协议》</font></a>
+                            </span>
+                        </div>
+                        <div class="bn-login">
+                            <button class="fail" id="btnRegist" disabled @click="identity()">认&nbsp;&nbsp;证</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="reg-right">
+                    <div class="reg-txt clearfix">
+                        <p>
+                            万名用户知心托付<br/>
+                            千万级技术研发投入<br/>
+                        </p>
+                        <p>
+                            12.7%历史年化收益<br/>
+                            亿级注册资本平台
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+<!--页脚start-->
+<div th:include="commons/footer :: html"></div>
+<!--页脚end-->
+
+<!-- 实名认证协议模板start -->
+<!--<span id="includeAgreement">
+    <div th:include="commons/realNameAagreement :: html"></div>
+</span>-->
+<!-- 实名认证协议模板end -->
+
+<!--遮罩层start-->
+<div id="mask" class="dialog-overlay" style="display:none;" onclick="javascript:closeBox('mask','agreement');"></div>
+<!--遮罩层end-->
+</body>
+</html>

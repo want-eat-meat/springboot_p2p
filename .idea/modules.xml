@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/001-p2p-parent/001-p2p-parent.iml" filepath="$PROJECT_DIR$/001-p2p-parent/001-p2p-parent.iml" />
+      <module fileurl="file://$PROJECT_DIR$/002-p2p-exterface/002-p2p-exterface.iml" filepath="$PROJECT_DIR$/002-p2p-exterface/002-p2p-exterface.iml" />
+      <module fileurl="file://$PROJECT_DIR$/003-p2p-data-service/003-p2p-data-service.iml" filepath="$PROJECT_DIR$/003-p2p-data-service/003-p2p-data-service.iml" />
+      <module fileurl="file://$PROJECT_DIR$/004-p2p-commons/004-p2p-commons.iml" filepath="$PROJECT_DIR$/004-p2p-commons/004-p2p-commons.iml" />
+      <module fileurl="file://$PROJECT_DIR$/005-p2p-web/005-p2p-web.iml" filepath="$PROJECT_DIR$/005-p2p-web/005-p2p-web.iml" />
+      <module fileurl="file://$PROJECT_DIR$/006-p2p-clock/006-p2p-clock.iml" filepath="$PROJECT_DIR$/006-p2p-clock/006-p2p-clock.iml" />
+      <module fileurl="file://$PROJECT_DIR$/007-p2p-pay/007-p2p-pay.iml" filepath="$PROJECT_DIR$/007-p2p-pay/007-p2p-pay.iml" />
+    </modules>
+  </component>
+</project>

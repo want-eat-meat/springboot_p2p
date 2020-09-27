@@ -1,0 +1,174 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <title>动力金融网 - 专业的互联网金融信息服务平台</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/cashbox-share.css}"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/fund-guanli.css}"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/share.css}"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}"/>
+    <script type="text/javascript" language="javascript" th:src="@{/js/jquery-1.7.2.min.js}"></script>
+    <script type="text/javascript" th:src="@{/js/trafficStatistics.js}"></script>
+    <script type="text/javascript">
+        $(function () {
+            $("#myCash").attr("class", "on");
+        })
+        $(document).ready(function () {
+            $("#overView").removeClass("on");
+            $("#myAccount").addClass("on");
+        });
+        $(document).ready(function () {
+            $("#chongzhijilu").addClass("on");
+        });
+    </script>
+</head>
+
+<body>
+<script type="text/javascript" th:inline="javascript">
+    $(function () {
+        var data4Vue = {
+            context : context,
+            uid : [[${session.User.id}]],
+            page : {},
+            result : {},
+        }
+        var vue = new Vue({
+            el : "#work_area",
+            data : data4Vue,
+            filters : {
+                formatDate : function(value) {
+                    var datetime = new Date(value);
+                    var year = datetime.getFullYear();
+                    var month = datetime.getMonth() + 1 < 10 ? "0" + (datetime.getMonth() + 1) : datetime.getMonth() + 1;
+                    var date = datetime.getDate() < 10 ? "0" + datetime.getDate() : datetime.getDate();
+                    var hour = datetime.getHours()< 10 ? "0" + datetime.getHours() : datetime.getHours();
+                    var minute = datetime.getMinutes()< 10 ? "0" + datetime.getMinutes() : datetime.getMinutes();
+                    var second = datetime.getSeconds()< 10 ? "0" + datetime.getSeconds() : datetime.getSeconds();
+                    return year + "-" + month + "-" + date+" "+hour+":"+minute+":"+second;
+                }
+            },
+            methods : {
+                /**
+                 * 列表显示当前种类产品
+                 * @param start 本页开始下标
+                 */
+                listRecharge : function (start) {
+                    var url = context +"/recharge/" + start + "/" + this.uid;
+                    var self = this;
+                    axios.get(url).then(function (value) {
+                        self.result = value.data;
+                        if(self.result.status == 200){
+                            self.page = self.result.data;
+                        }else if(self.result.status == 401){
+                            alert("登录状态过期，请重新登录");
+                            location.href = context + "/user/login?returnURL=" + returnURL;
+                        }else{
+                            alert(self.result.msg);
+                        }
+                    })
+                },
+                /**
+                 * 跳转 0：首页 1：上一页 2：下一页 3：尾页
+                 * @param status
+                 */
+                jump : function (status) {
+                    switch (status) {
+                        case 0 :
+                            if(this.page.start == 0){
+                                return;
+                            }else{
+                                this.listRecharge(0);
+                            }
+                            break;
+                        case 1:
+                            if(this.page.hasPre){
+                                this.listRecharge(this.page.start - this.page.count);
+                            }else{
+                                return;
+                            }
+                            break;
+                        case 2:
+                            if(this.page.hasNext){
+                                this.listRecharge(this.page.start + this.page.count);
+                            }else{
+                                return;
+                            }
+                            break;
+                        case 3:
+                            if(this.page.hasNext){
+                                this.listRecharge(this.page.lastIndex);
+                            }else{
+                                return;
+                            }
+                            break;
+                        default:
+                            return;
+                    }
+                }
+            },
+            mounted : function () {
+                this.listRecharge(0);
+            }
+        })
+    })
+</script>
+<!--页头start-->
+<div id="header">
+    <div th:include="commons/header :: html"></div>
+</div>
+<!--页头end-->
+
+<!-- 二级导航栏start -->
+<div th:include="commons/subNav :: html"></div>
+<!-- 二级导航栏end -->
+<div id="work_area">
+<!--页中start-->
+<div class="mainBox">
+    <div class="homeWap">
+        <div class="fund-guanli clearfix">
+            <div class="left-nav">
+                <div th:include="commons/leftNav :: html"></div>
+            </div>
+            <div class="right-body">
+                <div class="right-wap">
+                    <div class="deal-data">
+                        <dl>
+                            <dt>
+                                <span class="deal-time">充值时间</span>
+                                <span class="deal-name">充值描述</span>
+                                <span class="deal-type" style="width:120px">类型</span>
+                                <span class="deal-money">充值金额(元)</span>
+                                <span class="deal-balance">充值状态</span>
+                            </dt>
+                            <dd v-for="recharge in page.data">
+                                <div class="deal-time">{{recharge.rechargeTime|formatDate}}</div>
+                                <div class="deal-name">{{recharge.rechargeDesc}}</div>
+                                <div class="deal-type" style="width:120px">充值</div>
+                                <div class="deal-money">{{recharge.rechargeMoney}}</div>
+                                <div class="deal-balance" v-if="recharge.rechargeStatus == 0">充值中</div>
+                                <div class="deal-balance" v-if="recharge.rechargeStatus == 1">充值成功</div>
+                                <div class="deal-balance" v-if="recharge.rechargeStatus == 2">充值失败</div>
+                            </dd>
+                            <div class="touzi_fenye" style="width:100%; text-align:center;line-height:30px;">
+                                共{{page.total}}条{{page.totalPage}}页　当前为第{{page.currentPage}}页　
+                                <a id="linkHomePage" href="javascript:void(0)" @click="jump(0)">首页</a>
+                                <a id="linkPreviousPage" href="javascript:void(0)" @click="jump(1)">上一页</a>
+                                <a id="linkNextPage" href="javascript:void(0)" @click="jump(2)">下一页 </a>
+                                <a id="linkLastPage" href="javascript:void(0)" @click="jump(3)">尾页</a>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!--页中end-->
+</div>
+<!--页脚start-->
+<div th:include="commons/footer :: html"></div>
+<!--页脚end-->
+</body>
+</html>
